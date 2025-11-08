@@ -152,12 +152,12 @@ static class StringUtil
     }
 }
 
-public class StringHashCode
+public abstract class BenchmarkBase
 {
     [Params(10, 11, 12, 13, 100, 101, 102, 103, 1000, 1001, 1002, 1003)]
     public int N;
 
-    private string str;
+    protected string str;
 
     [GlobalSetup]
     public void GlobalSetup()
@@ -170,17 +170,23 @@ public class StringHashCode
             chars[i] = alphabet[random.Next(alphabet.Length)];
         str = new string(chars);
     }
+}
 
+public class HashcodeBenchmark : BenchmarkBase
+{
     [Benchmark(Baseline = true)] public int HashCodeFast()
         => str.GetPlatformIndependentHashCodeFast();
 
     [Benchmark]  public int HashCode()
         => str.GetPlatformIndependentHashCode();
+}
 
-    [Benchmark] public int HashCodeCaseInsensitiveFast()
+public class CaseInsensitiveHashcodeBenchmark : BenchmarkBase
+{
+    [Benchmark(Baseline = true)] public int HashCodeFast()
         => str.GetPlatformIndependentCaseInsensitiveHashCodeFast();
 
-    [Benchmark] public int HashCodeCaseInsensitive()
+    [Benchmark]  public int HashCode()
         => str.GetPlatformIndependentCaseInsensitiveHashCode();
 }
 
@@ -188,6 +194,9 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var summary = BenchmarkRunner.Run<StringHashCode>();
+        if (args is ["CaseInsensitive"])
+            BenchmarkRunner.Run<CaseInsensitiveHashcodeBenchmark>();
+        else
+            BenchmarkRunner.Run<HashcodeBenchmark>();
     }
 }
