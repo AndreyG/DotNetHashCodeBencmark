@@ -154,7 +154,7 @@ static class StringUtil
 
 public class StringHashCode
 {
-    [Params(10, 100, 1000)]
+    [Params(10, 11, 12, 13, 100, 101, 102, 103, 1000, 1001, 1002, 1003)]
     public int N;
 
     private string str;
