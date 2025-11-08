@@ -174,20 +174,20 @@ public abstract class BenchmarkBase
 
 public class HashcodeBenchmark : BenchmarkBase
 {
-    [Benchmark(Baseline = true)] public int HashCodeFast()
-        => str.GetPlatformIndependentHashCodeFast();
-
-    [Benchmark]  public int HashCode()
+    [Benchmark(Baseline = true)]  public int HashCode()
         => str.GetPlatformIndependentHashCode();
+
+    [Benchmark] public int HashCodeFast()
+        => str.GetPlatformIndependentHashCodeFast();
 }
 
 public class CaseInsensitiveHashcodeBenchmark : BenchmarkBase
 {
-    [Benchmark(Baseline = true)] public int HashCodeFast()
-        => str.GetPlatformIndependentCaseInsensitiveHashCodeFast();
-
-    [Benchmark]  public int HashCode()
+    [Benchmark(Baseline = true)]  public int HashCode()
         => str.GetPlatformIndependentCaseInsensitiveHashCode();
+
+    [Benchmark] public int HashCodeFast()
+        => str.GetPlatformIndependentCaseInsensitiveHashCodeFast();
 }
 
 public class Program
