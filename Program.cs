@@ -2,6 +2,7 @@
 using BenchmarkDotNet.Running;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 
 namespace HashCode;
 
@@ -73,6 +74,82 @@ static class StringUtil
 
         return hash;
     }
+
+    /// <summary>
+    /// Platform independent case-insensitive hash code, can be used to persist records. <see cref="String.ToString()"/>
+    /// is different for x86 and x64, so it can't be used for serialization.
+    /// </summary>
+    /// <param name="s">source string</param>
+    /// <returns>hashcode</returns>
+    [Pure]
+    [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
+    public static int GetPlatformIndependentCaseInsensitiveHashCode(this string? s)
+    {
+        if (s == null) return HashOfEmptyString;
+
+        var hash = HashOfEmptyString;
+        unchecked
+        {
+            for (var index = 0; index < s.Length; index++)
+            {
+                hash = hash * 31 + s[index].ToLowerFast();
+            }
+        }
+
+        return hash;
+    }
+
+    [Pure]
+    public static unsafe int GetPlatformIndependentCaseInsensitiveHashCodeFast(this string s)
+    {
+        var hash = HashOfEmptyString;
+        unchecked
+        {
+            fixed (char* chPtr = s)
+            {
+                var n = s.Length;
+                var ptr = chPtr;
+                for (; n > 2; n -= 4, ptr += 4)
+                {
+                    var c0 = ptr[0].ToLowerFast();
+                    var c1 = ptr[1].ToLowerFast();
+                    var c2 = ptr[2].ToLowerFast();
+                    var c3 = ptr[3].ToLowerFast();
+                    hash = 31 * 31 * hash
+                         + 31 * Combine(c0, c1)
+                         +  Combine(c2, c3);
+                }
+
+                if (n > 0)
+                {
+                    var c0 = ptr[0].ToLowerFast();
+                    var c1 = ptr[1].ToLowerFast();
+                    hash = hash * 31 + Combine(c0, c1);
+                }
+            }
+        }
+
+        return hash;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int Combine(char c1, char c2)
+    {
+        unchecked
+        {
+            return (int)((uint)c1 << 16 | (uint)c2);
+        }
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static char ToLowerFast(this char c)
+    {
+        if (c <= '\x007f')
+            return (uint)(c - 'A') <= 'Z' - 'A' ? (char)(c + 'a' - 'A') : c;
+
+        return char.ToLowerInvariant(c);
+    }
 }
 
 public class StringHashCode
@@ -94,8 +171,17 @@ public class StringHashCode
         str = new string(chars);
     }
 
-    [Benchmark] public int HashCode()     => str.GetPlatformIndependentHashCode();
-    [Benchmark] public int HashCodeFast() => str.GetPlatformIndependentHashCodeFast();
+    [Benchmark(Baseline = true)] public int HashCodeFast()
+        => str.GetPlatformIndependentHashCodeFast();
+
+    [Benchmark]  public int HashCode()
+        => str.GetPlatformIndependentHashCode();
+
+    [Benchmark] public int HashCodeCaseInsensitiveFast()
+        => str.GetPlatformIndependentCaseInsensitiveHashCodeFast();
+
+    [Benchmark] public int HashCodeCaseInsensitive()
+        => str.GetPlatformIndependentCaseInsensitiveHashCode();
 }
 
 public class Program
